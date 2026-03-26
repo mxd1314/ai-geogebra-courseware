@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI-GeoGebra 课件生成器</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="app-container">
+        <header class="app-header">
+            <div class="header-left">
+                <div class="logo">
+                    <span class="logo-icon">📐</span>
+                    <span class="logo-text">AI-GeoGebra</span>
+                </div>
+            </div>
+            <div class="header-right">
+                <button id="btn-history" class="header-btn" title="历史记录">
+                    <span class="btn-icon">📁</span>
+                    <span class="btn-text">历史</span>
+                </button>
+                <button id="btn-help" class="header-btn" title="帮助文档">
+                    <span class="btn-icon">❓</span>
+                    <span class="btn-text">帮助</span>
+                </button>
+                <button id="btn-settings" class="header-btn" title="设置">
+                    <span class="btn-icon">⚙️</span>
+                    <span class="btn-text">设置</span>
+                </button>
+            </div>
+        </header>
+
+        <main class="app-main">
+            <aside class="sidebar-left">
+                <section class="panel ai-config-panel collapsible">
+                    <div class="panel-header clickable" id="ai-config-toggle">
+                        <h3>🤖 AI 增强功能 <span class="optional-badge">可选</span></h3>
+                        <span class="collapse-icon">▼</span>
+                    </div>
+                    <div class="panel-body collapsed" id="ai-config-body">
+                        <p class="config-hint">配置AI后可使用自然语言生成课件，未配置时使用内置规则引擎。</p>
+                        <div class="form-group">
+                            <label for="ai-provider">AI 服务商</label>
+                            <select id="ai-provider" class="form-control">
+                                <option value="">-- 不使用AI --</option>
+                                <option value="openai">OpenAI (GPT)</option>
+                                <option value="qwen">通义千问 (阿里)</option>
+                                <option value="ernie">文心一言 (百度)</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="ai-model">模型选择</label>
+                            <select id="ai-model" class="form-control">
+                                <option value="gpt-4">GPT-4</option>
+                                <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="api-key">API Key</label>
+                            <div class="input-with-action">
+                                <input type="password" id="api-key" class="form-control" placeholder="请输入API Key">
+                                <button id="btn-toggle-key" class="btn-icon-only" title="显示/隐藏">👁️</button>
+                            </div>
+                        </div>
+                        <div class="form-group advanced-option">
+                            <label for="custom-endpoint">自定义API地址 (可选)</label>
+                            <input type="text" id="custom-endpoint" class="form-control" placeholder="留空使用默认地址">
+                        </div>
+                    </div>
+                </section>
+
+                <section class="panel input-panel">
+                    <div class="panel-header">
+                        <h3>输入方式</h3>
+                        <div class="tab-buttons">
+                            <button class="tab-btn active" data-tab="natural">自然语言</button>
+                            <button class="tab-btn" data-tab="template">模板选择</button>
+                        </div>
+                    </div>
+                    <div class="panel-body">
+                        <div id="tab-natural" class="tab-content active">
+                            <div class="form-group">
+                                <label for="user-input">描述您想要的课件</label>
+                                <textarea id="user-input" class="form-control textarea-lg" placeholder="例如：画一个圆心在原点、半径为3的圆，并标注圆心O"></textarea>
+                            </div>
+                            <div class="quick-examples">
+                                <span class="examples-label">快捷示例：</span>
+                                <button class="example-btn" data-text="画一个圆心在(2,3)，半径为5的圆">圆</button>
+                                <button class="example-btn" data-text="画一条经过点(1,1)和(4,5)的直线">直线</button>
+                                <button class="example-btn" data-text="画一个顶点在原点、开口向上的抛物线">抛物线</button>
+                                <button class="example-btn" data-text="画一个三角形ABC，顶点分别为(0,0)、(4,0)、(2,3)">三角形</button>
+                            </div>
+                        </div>
+                        <div id="tab-template" class="tab-content">
+                            <div class="form-group">
+                                <label for="template-category">课件类别</label>
+                                <select id="template-category" class="form-control">
+                                    <option value="geometry">几何图形</option>
+                                    <option value="algebra">函数图像</option>
+                                    <option value="calculus">微积分</option>
+                                </select>
+                            </div>
+                            <div id="template-list" class="template-list"></div>
+                            <div id="template-params" class="template-params"></div>
+                        </div>
+                    </div>
+                    <div class="panel-footer">
+                        <button id="btn-generate" class="btn btn-primary btn-block">
+                            <span class="btn-icon">✨</span>
+                            生成课件
+                        </button>
+                    </div>
+                </section>
+            </aside>
+
+            <section class="main-content">
+                <div class="preview-panel">
+                    <div class="preview-header">
+                        <h3>课件预览</h3>
+                        <div class="preview-actions">
+                            <button id="btn-clear" class="btn btn-secondary btn-sm">清空画布</button>
+                            <button id="btn-save" class="btn btn-success btn-sm">保存</button>
+                            <div class="dropdown">
+                                <button id="btn-export" class="btn btn-primary btn-sm dropdown-toggle">
+                                    导出
+                                    <span class="dropdown-arrow">▼</span>
+                                </button>
+                                <div class="dropdown-menu">
+                                    <button class="dropdown-item" data-format="ggb">导出为 .ggb 文件</button>
+                                    <button class="dropdown-item" data-format="html">导出为 .html 网页</button>
+                                    <button class="dropdown-item" data-format="png">导出为 .png 图片</button>
+                                    <button class="dropdown-item" data-format="jpg">导出为 .jpg 图片</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="geogebra-wrapper">
+                        <div id="geogebra-container" class="geogebra-container"></div>
+                        <div id="loading-overlay" class="loading-overlay hidden">
+                            <div class="loading-spinner"></div>
+                            <p class="loading-text">正在生成课件...</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="params-panel">
+                    <div class="panel-header">
+                        <h3>参数微调</h3>
+                        <button id="btn-reset-params" class="btn btn-link btn-sm">重置参数</button>
+                    </div>
+                    <div id="params-container" class="params-container">
+                        <p class="empty-hint">生成课件后，可在此调整参数</p>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <footer class="app-footer">
+            <div class="footer-left">
+                <span id="status-text">状态: 就绪</span>
+            </div>
+            <div class="footer-right">
+                <span id="ai-status">AI: 未配置</span>
+                <span class="separator">|</span>
+                <span id="course-count">课件数: 0</span>
+            </div>
+        </footer>
+    </div>
+
+    <div id="modal-settings" class="modal hidden">
+        <div class="modal-backdrop"></div>
+        <div class="modal-dialog">
+            <div class="modal-header">
+                <h3>设置</h3>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="settings-section">
+                    <h4>界面设置</h4>
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="setting-show-tutorial" checked>
+                            启动时显示新手引导
+                        </label>
+                    </div>
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="setting-auto-save" checked>
+                            自动保存课件
+                        </label>
+                    </div>
+                </div>
+                <div class="settings-section">
+                    <h4>AI设置</h4>
+                    <div class="form-group">
+                        <label for="setting-timeout">请求超时时间 (秒)</label>
+                        <input type="number" id="setting-timeout" class="form-control" value="30" min="10" max="120">
+                    </div>
+                    <div class="form-group">
+                        <label for="setting-max-retries">最大重试次数</label>
+                        <input type="number" id="setting-max-retries" class="form-control" value="3" min="1" max="5">
+                    </div>
+                </div>
+                <div class="settings-section">
+                    <h4>数据管理</h4>
+                    <button id="btn-export-all" class="btn btn-secondary">导出所有课件</button>
+                    <button id="btn-clear-all" class="btn btn-danger">清除所有数据</button>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary modal-cancel">取消</button>
+                <button id="btn-save-settings" class="btn btn-primary">保存设置</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-history" class="modal hidden">
+        <div class="modal-backdrop"></div>
+        <div class="modal-dialog modal-lg">
+            <div class="modal-header">
+                <h3>历史课件</h3>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="history-list" class="history-list"></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-help" class="modal hidden">
+        <div class="modal-backdrop"></div>
+        <div class="modal-dialog modal-lg">
+            <div class="modal-header">
+                <h3>帮助文档</h3>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="help-tabs">
+                    <button class="help-tab active" data-help="quickstart">快速入门</button>
+                    <button class="help-tab" data-help="examples">示例课件</button>
+                    <button class="help-tab" data-help="faq">常见问题</button>
+                </div>
+                <div id="help-quickstart" class="help-content active">
+                    <h4>欢迎使用 AI-GeoGebra 课件生成器！</h4>
+                    <ol>
+                        <li><strong>配置AI服务</strong>：在左侧选择AI服务商并输入API Key</li>
+                        <li><strong>输入需求</strong>：用自然语言描述您想要的课件，或选择模板</li>
+                        <li><strong>生成课件</strong>：点击"生成课件"按钮，等待AI生成</li>
+                        <li><strong>预览调整</strong>：在右侧预览课件，可通过参数面板微调</li>
+                        <li><strong>保存导出</strong>：保存到本地或导出为各种格式</li>
+                    </ol>
+                </div>
+                <div id="help-examples" class="help-content">
+                    <h4>自然语言输入示例</h4>
+                    <div class="example-list">
+                        <div class="example-item">
+                            <strong>几何图形</strong>
+                            <ul>
+                                <li>"画一个圆心在原点、半径为3的圆"</li>
+                                <li>"画一个边长为5的正三角形"</li>
+                                <li>"画两个相切的圆，半径分别为2和3"</li>
+                            </ul>
+                        </div>
+                        <div class="example-item">
+                            <strong>函数图像</strong>
+                            <ul>
+                                <li>"画一个开口向上的抛物线，顶点在(1,2)"</li>
+                                <li>"画正弦函数y=sin(x)的图像"</li>
+                                <li>"画指数函数y=2^x和对数函数y=log2(x)"</li>
+                            </ul>
+                        </div>
+                        <div class="example-item">
+                            <strong>微积分</strong>
+                            <ul>
+                                <li>"画函数y=x^2及其导函数"</li>
+                                <li>"画函数y=x^3在x=1处的切线"</li>
+                                <li>"显示y=sin(x)在[0,π]区间与x轴围成的面积"</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                <div id="help-faq" class="help-content">
+                    <h4>常见问题</h4>
+                    <div class="faq-item">
+                        <details>
+                            <summary>如何获取API Key？</summary>
+                            <p><strong>OpenAI:</strong> 访问 platform.openai.com 注册并获取API Key</p>
+                            <p><strong>通义千问:</strong> 访问 dashscope.aliyun.com 申请API Key</p>
+                            <p><strong>文心一言:</strong> 访问 yiyan.baidu.com 申请API Key</p>
+                        </details>
+                    </div>
+                    <div class="faq-item">
+                        <details>
+                            <summary>生成的课件可以编辑吗？</summary>
+                            <p>可以！生成后您可以直接在GeoGebra画布中进行编辑，也可以导出为.ggb文件后在GeoGebra桌面版中继续编辑。</p>
+                        </details>
+                    </div>
+                    <div class="faq-item">
+                        <details>
+                            <summary>课件保存在哪里？</summary>
+                            <p>课件保存在浏览器的IndexedDB中，清除浏览器数据会导致课件丢失。建议定期导出备份。</p>
+                        </details>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-tutorial" class="modal hidden">
+        <div class="modal-backdrop"></div>
+        <div class="modal-dialog">
+            <div class="modal-header">
+                <h3>欢迎使用 AI-GeoGebra</h3>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body tutorial-body">
+                <div id="tutorial-step-1" class="tutorial-step active">
+                    <div class="tutorial-icon">🤖</div>
+                    <h4>配置AI服务</h4>
+                    <p>选择您喜欢的AI服务商（OpenAI、通义千问或文心一言），输入API Key即可开始使用。</p>
+                </div>
+                <div id="tutorial-step-2" class="tutorial-step">
+                    <div class="tutorial-icon">💬</div>
+                    <h4>自然语言输入</h4>
+                    <p>用中文描述您想要的课件，AI会自动理解并生成对应的GeoGebra图形。</p>
+                </div>
+                <div id="tutorial-step-3" class="tutorial-step">
+                    <div class="tutorial-icon">🎨</div>
+                    <h4>预览与调整</h4>
+                    <p>实时预览生成的课件，通过参数面板进行微调，直到满意为止。</p>
+                </div>
+                <div id="tutorial-step-4" class="tutorial-step">
+                    <div class="tutorial-icon">💾</div>
+                    <h4>保存与导出</h4>
+                    <p>保存到本地或导出为GGB、HTML、PNG等多种格式，方便分享和使用。</p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <label class="checkbox-label">
+                    <input type="checkbox" id="skip-tutorial">
+                    不再显示此引导
+                </label>
+                <div class="tutorial-nav">
+                    <button id="btn-tutorial-prev" class="btn btn-secondary" disabled>上一步</button>
+                    <span id="tutorial-progress">1 / 4</span>
+                    <button id="btn-tutorial-next" class="btn btn-primary">下一步</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast-container" class="toast-container"></div>
+
+    <script src="js/utils.js"></script>
+    <script src="js/storage.js"></script>
+    <script src="js/geogebra.js"></script>
+    <script src="js/ai.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>

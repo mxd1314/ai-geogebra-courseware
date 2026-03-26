@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GeoGebra 测试</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            padding: 20px;
+        }
+        #geogebra-container {
+            width: 800px;
+            height: 500px;
+            border: 2px solid #333;
+            margin: 20px 0;
+        }
+        button {
+            padding: 10px 20px;
+            margin: 5px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        #log {
+            background: #f5f5f5;
+            padding: 10px;
+            margin-top: 20px;
+            height: 200px;
+            overflow-y: auto;
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+    <h1>GeoGebra API 测试</h1>
+    
+    <div id="geogebra-container"></div>
+    
+    <div>
+        <button onclick="testCircle()">画圆</button>
+        <button onclick="testPoint()">画点</button>
+        <button onclick="testLine()">画线</button>
+        <button onclick="testFunction()">画函数</button>
+        <button onclick="clearAll()">清空</button>
+    </div>
+    
+    <div id="log"></div>
+
+    <script src="https://www.geogebra.org/apps/deployggb.js"></script>
+    <script>
+        let ggbApplet = null;
+        let api = null;
+
+        function log(msg) {
+            const logDiv = document.getElementById('log');
+            logDiv.innerHTML += msg + '<br>';
+            console.log(msg);
+        }
+
+        function initGeoGebra() {
+            log('开始初始化GeoGebra...');
+            
+            const params = {
+                appName: 'graphing',
+                width: 800,
+                height: 500,
+                showToolBar: true,
+                showAlgebraInput: true,
+                showMenuBar: true,
+                language: 'zh',
+                appletOnLoad: function(ggbApi) {
+                    log('GeoGebra 加载完成！');
+                    api = ggbApi;
+                    log('API对象: ' + typeof api);
+                    log('evalCommand方法: ' + typeof api.evalCommand);
+                }
+            };
+
+            ggbApplet = new GGBApplet(params, true);
+            ggbApplet.inject('geogebra-container');
+            log('GeoGebra注入完成，等待加载...');
+        }
+
+        function testCircle() {
+            if (!api) {
+                log('错误: GeoGebra未加载完成');
+                return;
+            }
+            
+            // 方法1: 直接使用Circle命令（不命名）
+            log('测试方法1: Circle((0, 0), 3)');
+            try {
+                const result1 = api.evalCommand('Circle((0, 0), 3)');
+                log('方法1结果: ' + result1);
+            } catch (e) {
+                log('方法1错误: ' + e.message);
+            }
+            
+            // 方法2: 先创建点，再创建圆
+            log('测试方法2: 先创建点再创建圆');
+            try {
+                api.evalCommand('O = (0, 0)');
+                const result2 = api.evalCommand('Circle(O, 3)');
+                log('方法2结果: ' + result2);
+            } catch (e) {
+                log('方法2错误: ' + e.message);
+            }
+        }
+
+        function testPoint() {
+            if (!api) {
+                log('错误: GeoGebra未加载完成');
+                return;
+            }
+            
+            // 方法1: 使用Point命令
+            log('测试方法1: Point((2, 3))');
+            try {
+                const result1 = api.evalCommand('Point((2, 3))');
+                log('方法1结果: ' + result1);
+            } catch (e) {
+                log('方法1错误: ' + e.message);
+            }
+            
+            // 方法2: 直接定义点
+            log('测试方法2: B = (4, 5)');
+            try {
+                const result2 = api.evalCommand('B = (4, 5)');
+                log('方法2结果: ' + result2);
+            } catch (e) {
+                log('方法2错误: ' + e.message);
+            }
+        }
+
+        function testLine() {
+            if (!api) {
+                log('错误: GeoGebra未加载完成');
+                return;
+            }
+            log('执行: L = Line((0, 0), (4, 5))');
+            try {
+                const result = api.evalCommand('L = Line((0, 0), (4, 5))');
+                log('结果: ' + result);
+            } catch (e) {
+                log('错误: ' + e.message);
+            }
+        }
+
+        function testFunction() {
+            if (!api) {
+                log('错误: GeoGebra未加载完成');
+                return;
+            }
+            log('执行: f(x) = x^2');
+            try {
+                const result = api.evalCommand('f(x) = x^2');
+                log('结果: ' + result);
+            } catch (e) {
+                log('错误: ' + e.message);
+            }
+        }
+
+        function clearAll() {
+            if (!api) {
+                log('错误: GeoGebra未加载完成');
+                return;
+            }
+            log('清空画布');
+            try {
+                api.reset();
+                log('画布已清空');
+            } catch (e) {
+                log('错误: ' + e.message);
+            }
+        }
+
+        // 页面加载后初始化
+        window.onload = initGeoGebra;
+    </script>
+</body>
+</html>

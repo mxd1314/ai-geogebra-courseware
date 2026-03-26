@@ -1,0 +1,17 @@
+{
+  "name": "ai-geogebra-courseware",
+  "version": "1.0.4",
+  "description": "AI驱动的GeoGebra课件生成器",
+  "main": "index.html",
+  "scripts": {
+    "start": "npx serve -p 3000"
+  },
+  "keywords": [
+    "geogebra",
+    "ai",
+    "courseware",
+    "education"
+  ],
+  "author": "",
+  "license": "MIT"
+}
